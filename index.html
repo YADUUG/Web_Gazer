@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Tracking Calibration and Heatmap</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #calibration-point, #gaze-cursor {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            position: absolute;
+            display: none;
+        }
+        #calibration-point {
+            background-color: green;
+        }
+        #gaze-cursor {
+            background-color: red;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="clear-heatmap">Clear Heatmap</button>
+        <button id="restart-heatmapping">Restart Heatmapping</button>
+    </div>
+    <div id="calibration-point"></div>
+    <div id="gaze-cursor"></div>
+    <canvas id="heatmap-canvas"></canvas>
+
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simpleheat/simpleheat.js"></script>
+    <script>
+        // Initialize WebGazer
+        webgazer.setRegression('ridge')
+                .setTracker('clmtrackr')
+                .begin();
+
+        const calibrationPoints = [
+            { x: 100, y: 100 },
+            { x: window.innerWidth - 100, y: 100 },
+            { x: 100, y: window.innerHeight - 100 },
+            { x: window.innerWidth - 100, y: window.innerHeight - 100 },
+            { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+        ];
+
+        let currentCalibrationPoint = 0;
+        const calibrationPoint = document.getElementById('calibration-point');
+
+        const heatmapCanvas = document.getElementById('heatmap-canvas');
+        heatmapCanvas.width = window.innerWidth;
+        heatmapCanvas.height = window.innerHeight;
+        const heatmapContext = heatmapCanvas.getContext('2d');
+
+        const heat = simpleheat('heatmap-canvas');
+
+        function updateCalibrationPoint(x, y) {
+            calibrationPoint.style.display = 'block';
+            calibrationPoint.style.left = `${x}px`;
+            calibrationPoint.style.top = `${y}px`;
+        }
+
+        function startCalibration() {
+            if (currentCalibrationPoint < calibrationPoints.length) {
+                const point = calibrationPoints[currentCalibrationPoint];
+                updateCalibrationPoint(point.x, point.y);
+                setTimeout(calibrateNextPoint, 2000); // Wait 2 seconds before moving to the next point
+            } else {
+                console.log('Calibration complete!');
+                calibrationPoint.style.display = 'none';
+                webgazer.resume();
+                startGazeTracking();
+            }
+        }
+
+        function calibrateNextPoint() {
+            currentCalibrationPoint++;
+            startCalibration();
+        }
+
+        window.onload = function() {
+            webgazer.pause();
+            startCalibration();
+        };
+
+        const gazeCursor = document.getElementById('gaze-cursor');
+        let gazeData = [];
+
+        function updateGazeCursor(x, y) {
+            gazeCursor.style.display = 'block';
+            gazeCursor.style.left = `${x - 10}px`;
+            gazeCursor.style.top = `${y - 10}px`;
+        }
+
+        function startGazeTracking() {
+            webgazer.setGazeListener((data, elapsedTime) => {
+                if (data == null) {
+                    gazeCursor.style.display = 'none';
+                    return;
+                }
+                const x = data.x;
+                const y = data.y;
+                updateGazeCursor(x, y);
+                gazeData.push([x, y, 1]); // Collect gaze data
+                renderHeatmap();
+            }).begin();
+        }
+
+        function renderHeatmap() {
+            heat.data(gazeData);
+            heat.radius(25, 40);
+            heat.draw(0.05);
+        }
+
+        // Clear the heatmap
+        document.getElementById('clear-heatmap').addEventListener('click', () => {
+            gazeData = [];
+            heat.clear();
+            heatmapContext.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+        });
+
+        // Restart heatmapping
+        document.getElementById('restart-heatmapping').addEventListener('click', () => {
+            gazeData = [];
+            heat.clear();
+            heatmapContext.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+            currentCalibrationPoint = 0;
+            webgazer.pause();
+            startCalibration();
+        });
+    </script>
+</body>
+</html>
