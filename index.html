@@ -31,15 +31,27 @@
         button {
             margin: 5px;
         }
+        #plus-sign {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 50px;
+            font-weight: bold;
+            color: black;
+        }
     </style>
 </head>
 <body>
     <div id="controls">
-        <button id="clear-heatmap">Clear Heatmap</button>
-        <button id="restart-heatmapping">Restart Heatmapping</button>
+        <button id="start-tracking">Start</button>
+        <button id="stop-tracking">Stop</button>
+        <button id="clear-heatmap">Clear</button>
+        <button id="restart-heatmapping">Restart</button>
     </div>
     <div id="calibration-point"></div>
     <div id="gaze-cursor"></div>
+    <div id="plus-sign">+</div>
     <canvas id="heatmap-canvas"></canvas>
 
     <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
@@ -99,8 +111,13 @@
 
         const gazeCursor = document.getElementById('gaze-cursor');
         let gazeData = [];
+        let tracking = false;
 
         function updateGazeCursor(x, y) {
+            if (!tracking) {
+                gazeCursor.style.display = 'none';
+                return;
+            }
             gazeCursor.style.display = 'block';
             gazeCursor.style.left = `${x - 10}px`;
             gazeCursor.style.top = `${y - 10}px`;
@@ -112,11 +129,13 @@
                     gazeCursor.style.display = 'none';
                     return;
                 }
-                const x = data.x;
-                const y = data.y;
-                updateGazeCursor(x, y);
-                gazeData.push([x, y, 1]); // Collect gaze data
-                renderHeatmap();
+                if (tracking) {
+                    const x = data.x;
+                    const y = data.y;
+                    updateGazeCursor(x, y);
+                    gazeData.push([x, y, 1]); // Collect gaze data
+                    renderHeatmap();
+                }
             }).begin();
         }
 
@@ -141,6 +160,16 @@
             currentCalibrationPoint = 0;
             webgazer.pause();
             startCalibration();
+        });
+
+        // Start tracking
+        document.getElementById('start-tracking').addEventListener('click', () => {
+            tracking = true;
+        });
+
+        // Stop tracking
+        document.getElementById('stop-tracking').addEventListener('click', () => {
+            tracking = false;
         });
     </script>
 </body>
