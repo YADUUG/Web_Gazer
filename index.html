@@ -97,6 +97,9 @@
             background: white;
             border: 1px solid #ccc;
             z-index: 1001;
+            cursor: move; /* Set cursor to indicate draggable */
+            user-select: none; /* Prevent text selection while dragging */
+            touch-action: none; /* Disable touch events while dragging */
         }
     </style>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -109,16 +112,17 @@
         <button id="clear-heatmap">Clear</button>
         <button id="restart-heatmapping">Restart</button>
         <button id="download-csv">Download CSV</button>
+        <button id="download-heatmap">Download Heatmap (PNG)</button>
     </div>
     <div id="calibration-point"></div>
     <div id="gaze-cursor"></div>
-    <div id="sign-top" class="sign">0</div>
-    <div id="sign-bottom" class="sign">1</div>
-    <div id="sign-left" class="sign">2</div>
-    <div id="sign-right" class="sign">3</div>
+    <div id="sign-top" class="sign">Top</div>
+    <div id="sign-bottom" class="sign">Bottom</div>
+    <div id="sign-left" class="sign">Left</div>
+    <div id="sign-right" class="sign">Right</div>
     <div id="center-dot"></div>
     <canvas id="heatmap-canvas"></canvas>
-    <div id="plotly-chart"></div>
+    <div id="plotly-chart" draggable="true"></div>
 
     <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/simpleheat/simpleheat.js"></script>
@@ -252,6 +256,11 @@
             downloadCSV(gazeDataWithTime);
         });
 
+        // Download Heatmap as PNG
+        document.getElementById('download-heatmap').addEventListener('click', () => {
+            downloadHeatmap();
+        });
+
         function plot3DGraph() {
             const trace = {
                 x: gazeDataWithTime.map(d => d.x),
@@ -328,10 +337,14 @@
             document.body.removeChild(link); // Cleanup
         }
 
-
-
-
-
+        function downloadHeatmap() {
+            const link = document.createElement('a');
+            link.href = heatmapCanvas.toDataURL();
+            link.download = 'heatmap.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 
